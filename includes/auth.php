@@ -54,12 +54,21 @@ function registerUser($data)
     try {
         $pdo = getConnection();
 
-        // Validate required fields
-        $required_fields = ['firstname', 'middlename', 'lastname', 'username', 'email', 'password', 'confirm_password'];
+        // Validate required fields (excluding address lines - handled separately)
+        $required_fields = [
+            'firstname', 'middlename', 'lastname', 'username', 'email', 'password', 'confirm_password',
+            'city', 'state_province', 'postal_code', 'country'
+        ];
+        
         foreach ($required_fields as $field) {
             if (empty($data[$field])) {
                 return ['success' => false, 'message' => 'All fields are required.'];
             }
+        }
+
+        // Ensure at least one address line is provided
+        if (empty($data['address_line_1']) && empty($data['address_line_2'])) {
+            return ['success' => false, 'message' => 'At least one address line is required.'];
         }
 
         // Validate password match
@@ -80,6 +89,43 @@ function registerUser($data)
         // Validate email format
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             return ['success' => false, 'message' => 'Please enter a valid email address.'];
+        }
+
+        // Validate names (minimum 2 characters, only letters, spaces, hyphens, apostrophes)
+        foreach (['firstname', 'middlename', 'lastname'] as $field) {
+            if (strlen($data[$field]) < 2) {
+                $field_display = ucfirst(str_replace('name', ' name', $field));
+                return ['success' => false, 'message' => $field_display . ' must be at least 2 characters long.'];
+            }
+            if (!preg_match('/^[a-zA-Z\s\-\']+$/', $data[$field])) {
+                $field_display = ucfirst(str_replace('name', ' name', $field));
+                return ['success' => false, 'message' => $field_display . ' can only contain letters, spaces, hyphens, and apostrophes.'];
+            }
+        }
+
+        // Validate address fields (only if they're provided)
+        if (!empty($data['address_line_1']) && strlen($data['address_line_1']) < 5) {
+            return ['success' => false, 'message' => 'Address line 1 must be at least 5 characters long.'];
+        }
+        if (!empty($data['address_line_2']) && strlen($data['address_line_2']) < 3) {
+            return ['success' => false, 'message' => 'Address line 2 must be at least 3 characters long.'];
+        }
+        if (strlen($data['city']) < 2) {
+            return ['success' => false, 'message' => 'City must be at least 2 characters long.'];
+        }
+        if (strlen($data['state_province']) < 2) {
+            return ['success' => false, 'message' => 'State/Province must be at least 2 characters long.'];
+        }
+        if (strlen($data['postal_code']) < 3) {
+            return ['success' => false, 'message' => 'Postal code must be at least 3 characters long.'];
+        }
+        if (strlen($data['country']) < 2) {
+            return ['success' => false, 'message' => 'Country must be at least 2 characters long.'];
+        }
+
+        // Validate postal code format (basic alphanumeric with optional spaces/hyphens)
+        if (!preg_match('/^[a-zA-Z0-9\s\-]+$/', $data['postal_code'])) {
+            return ['success' => false, 'message' => 'Postal code contains invalid characters.'];
         }
 
         // Check if username already exists
@@ -114,8 +160,8 @@ function registerUser($data)
         $pdo->beginTransaction();
 
         try {
-            // Insert user with name fields
-            $stmt = $pdo->prepare("INSERT INTO users (first_name, middle_name, last_name, username, email, password, sponsor_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            // Insert user with name fields and address fields
+            $stmt = $pdo->prepare("INSERT INTO users (first_name, middle_name, last_name, username, email, password, sponsor_id, address_line_1, address_line_2, city, state_province, postal_code, country) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $data['firstname'], 
                 $data['middlename'], 
@@ -123,7 +169,13 @@ function registerUser($data)
                 $data['username'], 
                 $data['email'], 
                 $hashed_password, 
-                $sponsor_id
+                $sponsor_id,
+                $data['address_line_1'],
+                $data['address_line_2'],
+                $data['city'],
+                $data['state_province'],
+                $data['postal_code'],
+                $data['country']
             ]);
 
             $user_id = $pdo->lastInsertId();
@@ -134,7 +186,7 @@ function registerUser($data)
 
             $pdo->commit();
 
-            logEvent("New user registered: " . $data['username'] . " (" . $data['first_name'] . " " . $data['last_name'] . ")", 'info');
+            logEvent("New user registered: " . $data['username'] . " (" . $data['firstname'] . " " . $data['lastname'] . ") from " . $data['city'] . ", " . $data['country'], 'info');
             return ['success' => true, 'message' => 'Registration successful! You can now login.'];
 
         } catch (Exception $e) {
@@ -217,40 +269,6 @@ function updateUserPassword($user_id, $new_password)
  * @param array $data Profile data
  * @return bool Success status
  */
-// function updateUserProfile($user_id, $data)
-// {
-//     try {
-//         $pdo = getConnection();
-
-//         // Validate email if provided
-//         if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-//             return false;
-//         }
-
-//         // Check if email already exists for other users
-//         if (!empty($data['email'])) {
-//             $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
-//             $stmt->execute([$data['email'], $user_id]);
-//             if ($stmt->fetch()) {
-//                 return false; // Email already exists
-//             }
-//         }
-
-//         $stmt = $pdo->prepare("UPDATE users SET email = ? WHERE id = ?");
-//         $result = $stmt->execute([$data['email'], $user_id]);
-
-//         if ($result) {
-//             logEvent("Profile updated for user ID: $user_id", 'info');
-//         }
-
-//         return $result;
-
-//     } catch (Exception $e) {
-//         logEvent("Profile update error: " . $e->getMessage(), 'error');
-//         return false;
-//     }
-// }
-
 function updateUserProfile($user_id, $data)
 {
     try {
@@ -271,43 +289,6 @@ function updateUserProfile($user_id, $data)
         return false;
     }
 }
-
-// /**
-//  * Get user's referral tree
-//  * @param int $user_id User ID
-//  * @param int $max_levels Maximum levels to retrieve
-//  * @return array Referral tree
-//  */
-// function getUserReferralTree($user_id, $max_levels = 5)
-// {
-//     try {
-//         $pdo = getConnection();
-//         $tree = [];
-
-//         function getReferrals($pdo, $sponsor_id, $level = 1, $max_levels = 5)
-//         {
-//             if ($level > $max_levels)
-//                 return [];
-
-//             $stmt = $pdo->prepare("SELECT id, username, email, created_at FROM users WHERE sponsor_id = ? AND status = 'active'");
-//             $stmt->execute([$sponsor_id]);
-//             $referrals = $stmt->fetchAll();
-
-//             foreach ($referrals as &$referral) {
-//                 $referral['level'] = $level;
-//                 $referral['children'] = getReferrals($pdo, $referral['id'], $level + 1, $max_levels);
-//             }
-
-//             return $referrals;
-//         }
-
-//         return getReferrals($pdo, $user_id, 1, $max_levels);
-
-//     } catch (Exception $e) {
-//         logEvent("Get referral tree error: " . $e->getMessage(), 'error');
-//         return [];
-//     }
-// }
 
 /**
  * Get user statistics

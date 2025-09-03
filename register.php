@@ -28,16 +28,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'email' => trim($_POST['email'] ?? ''),
             'password' => $_POST['password'] ?? '',
             'confirm_password' => $_POST['confirm_password'] ?? '',
-            'sponsor_name' => trim($_POST['sponsor_name'] ?? '')
+            'sponsor_name' => trim($_POST['sponsor_name'] ?? ''),
+            // Add address fields
+            'address_line_1' => trim($_POST['address_line_1'] ?? ''),
+            'address_line_2' => trim($_POST['address_line_2'] ?? ''),
+            'city' => trim($_POST['city'] ?? ''),
+            'state_province' => trim($_POST['state_province'] ?? ''),
+            'postal_code' => trim($_POST['postal_code'] ?? ''),
+            'country' => trim($_POST['country'] ?? '')
         ];
 
-        // Validate required fields first
-        $required_fields = ['firstname', 'middlename', 'lastname', 'username', 'email', 'password', 'confirm_password'];
+        // Validate required fields first (excluding address lines - handled separately)
+        $required_fields = ['firstname', 'middlename', 'lastname', 'username', 'email', 'password', 'confirm_password', 'city', 'state_province', 'postal_code', 'country'];
         foreach ($required_fields as $field) {
             if (empty($mapped_data[$field])) {
                 $form_field = str_replace(['firstname', 'middlename', 'lastname'], ['first_name', 'middle_name', 'last_name'], $field);
-                $errors[$form_field] = ucfirst(str_replace('_', ' ', $form_field)) . ' is required.';
+                $field_display = ucfirst(str_replace('_', ' ', $form_field));
+                $errors[$form_field] = $field_display . ' is required.';
             }
+        }
+
+        // Validate that at least one address line is provided
+        if (empty($mapped_data['address_line_1']) && empty($mapped_data['address_line_2'])) {
+            $errors['address_line_1'] = 'At least one address line is required.';
         }
 
         // Only proceed with detailed validation if basic requirements are met
@@ -70,6 +83,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!preg_match('/^[a-zA-Z\s\-\']+$/', $mapped_data[$field])) {
                     $errors[$form_field] = ucfirst(str_replace('_', ' ', $form_field)) . ' can only contain letters, spaces, hyphens, and apostrophes.';
                 }
+            }
+
+            // Validate address fields (only if they have content)
+            if (!empty($mapped_data['address_line_1']) && strlen($mapped_data['address_line_1']) < 5) {
+                $errors['address_line_1'] = 'Address line 1 must be at least 5 characters long.';
+            }
+            if (!empty($mapped_data['address_line_2']) && strlen($mapped_data['address_line_2']) < 3) {
+                $errors['address_line_2'] = 'Address line 2 must be at least 3 characters long.';
+            }
+            
+            // Validate other address fields
+            if (strlen($mapped_data['city']) < 2) {
+                $errors['city'] = 'City must be at least 2 characters long.';
+            }
+            if (strlen($mapped_data['state_province']) < 2) {
+                $errors['state_province'] = 'State/Province must be at least 2 characters long.';
+            }
+            if (strlen($mapped_data['postal_code']) < 3) {
+                $errors['postal_code'] = 'Postal code must be at least 3 characters long.';
+            }
+            if (strlen($mapped_data['country']) < 2) {
+                $errors['country'] = 'Country must be at least 2 characters long.';
+            }
+
+            // Validate postal code format (basic alphanumeric with optional spaces/hyphens)
+            if (!preg_match('/^[a-zA-Z0-9\s\-]+$/', $mapped_data['postal_code'])) {
+                $errors['postal_code'] = 'Postal code contains invalid characters.';
             }
 
             // If all validations pass, attempt registration
@@ -184,6 +224,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .strength-strong {
             background-color: #28a745;
         }
+
+        .section-divider {
+            border-top: 2px solid #e9ecef;
+            margin: 2rem 0 1.5rem;
+        }
     </style>
 </head>
 
@@ -289,8 +334,158 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
 
+                            <!-- Address Information Section -->
+                            <div class="section-divider"></div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5 class="text-primary mb-3">
+                                        <i class="fas fa-map-marker-alt me-2"></i>Address Information
+                                    </h5>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Address Line 1 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="address_line_1" class="form-label">Address Line 1 <span class="text-muted">(Street, building)</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-home"></i>
+                                        </span>
+                                        <input type="text"
+                                            class="form-control <?php echo isset($errors['address_line_1']) ? 'is-invalid' : ''; ?>"
+                                            id="address_line_1" name="address_line_1"
+                                            value="<?php echo htmlspecialchars($_POST['address_line_1'] ?? ''); ?>"
+                                            placeholder="Street address, building, etc.">
+                                        <?php if (isset($errors['address_line_1'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?php echo htmlspecialchars($errors['address_line_1']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+
+                                <!-- Address Line 2 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="address_line_2" class="form-label">Address Line 2 <span class="text-muted">(Apt, suite, unit)</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-building"></i>
+                                        </span>
+                                        <input type="text"
+                                            class="form-control <?php echo isset($errors['address_line_2']) ? 'is-invalid' : ''; ?>"
+                                            id="address_line_2" name="address_line_2"
+                                            value="<?php echo htmlspecialchars($_POST['address_line_2'] ?? ''); ?>"
+                                            placeholder="Apartment, suite, unit, floor">
+                                        <?php if (isset($errors['address_line_2'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?php echo htmlspecialchars($errors['address_line_2']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Address requirement note -->
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        At least one address line is required. Use Address Line 1 for street/building and Address Line 2 for apartment/suite details.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- City -->
+                                <div class="col-md-4 mb-3">
+                                    <label for="city" class="form-label">City <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-city"></i>
+                                        </span>
+                                        <input type="text"
+                                            class="form-control <?php echo isset($errors['city']) ? 'is-invalid' : ''; ?>"
+                                            id="city" name="city"
+                                            value="<?php echo htmlspecialchars($_POST['city'] ?? ''); ?>"
+                                            placeholder="Enter city" required>
+                                        <?php if (isset($errors['city'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?php echo htmlspecialchars($errors['city']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+
+                                <!-- State/Province -->
+                                <div class="col-md-4 mb-3">
+                                    <label for="state_province" class="form-label">State/Province <span
+                                            class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-map"></i>
+                                        </span>
+                                        <input type="text"
+                                            class="form-control <?php echo isset($errors['state_province']) ? 'is-invalid' : ''; ?>"
+                                            id="state_province" name="state_province"
+                                            value="<?php echo htmlspecialchars($_POST['state_province'] ?? ''); ?>"
+                                            placeholder="State or Province" required>
+                                        <?php if (isset($errors['state_province'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?php echo htmlspecialchars($errors['state_province']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+
+                                <!-- Postal Code -->
+                                <div class="col-md-4 mb-3">
+                                    <label for="postal_code" class="form-label">Postal Code <span
+                                            class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-mail-bulk"></i>
+                                        </span>
+                                        <input type="text"
+                                            class="form-control <?php echo isset($errors['postal_code']) ? 'is-invalid' : ''; ?>"
+                                            id="postal_code" name="postal_code"
+                                            value="<?php echo htmlspecialchars($_POST['postal_code'] ?? ''); ?>"
+                                            placeholder="ZIP/Postal code" required>
+                                        <?php if (isset($errors['postal_code'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?php echo htmlspecialchars($errors['postal_code']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Country -->
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="country" class="form-label">Country <span
+                                            class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-globe"></i>
+                                        </span>
+                                        <input type="text"
+                                            class="form-control <?php echo isset($errors['country']) ? 'is-invalid' : ''; ?>"
+                                            id="country" name="country"
+                                            value="<?php echo htmlspecialchars($_POST['country'] ?? ''); ?>"
+                                            placeholder="Enter country" required>
+                                        <?php if (isset($errors['country'])): ?>
+                                            <div class="invalid-feedback">
+                                                <?php echo htmlspecialchars($errors['country']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Account Information Section -->
-                            <div class="row mt-3">
+                            <div class="section-divider"></div>
+                            <div class="row">
                                 <div class="col-12">
                                     <h5 class="text-primary mb-3">
                                         <i class="fas fa-lock me-2"></i>Account Information
@@ -397,7 +592,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
 
                             <!-- Sponsor Section -->
-                            <div class="row mt-3">
+                            <div class="section-divider"></div>
+                            <div class="row">
                                 <div class="col-12">
                                     <h5 class="text-primary mb-3">
                                         <i class="fas fa-user-friends me-2"></i>Referral Information
@@ -549,6 +745,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 e.preventDefault();
                 alert('Password must be at least <?php echo PASSWORD_MIN_LENGTH; ?> characters long!');
                 return false;
+            }
+
+            // Validate that at least one address line is provided
+            const addressLine1 = document.getElementById('address_line_1').value.trim();
+            const addressLine2 = document.getElementById('address_line_2').value.trim();
+
+            if (!addressLine1 && !addressLine2) {
+                e.preventDefault();
+                alert('At least one address line is required!');
+                document.getElementById('address_line_1').focus();
+                return false;
+            }
+
+            // Validate other required fields (excluding address lines)
+            const requiredFields = [
+                'first_name', 'middle_name', 'last_name', 'username', 'email',
+                'city', 'state_province', 'postal_code', 'country'
+            ];
+
+            for (let field of requiredFields) {
+                const fieldElement = document.getElementById(field);
+                if (!fieldElement.value.trim()) {
+                    e.preventDefault();
+                    alert(`${field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} is required!`);
+                    fieldElement.focus();
+                    return false;
+                }
             }
         });
     </script>
