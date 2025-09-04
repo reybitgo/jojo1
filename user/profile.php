@@ -9,6 +9,34 @@ require_once '../includes/validation.php';
 
 requireLogin('../login.php');
 
+// Country list for dropdown
+$countries = [
+    "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua & Barbuda","Argentina","Armenia",
+    "Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium",
+    "Belize","Benin","Bhutan","Bolivia","Bosnia & Herzegovina","Botswana","Brazil","Brunei","Bulgaria",
+    "Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic",
+    "Chad","Chile","China","Colombia","Comoros","Congo - Brazzaville","Congo - Kinshasa",
+    "Costa Rica","Côte d’Ivoire","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti",
+    "Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea",
+    "Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany",
+    "Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras",
+    "Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan",
+    "Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho",
+    "Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia",
+    "Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia",
+    "Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru",
+    "Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia",
+    "Norway","Oman","Pakistan","Palau","Panama","Papua New Guinea","Paraguay","Peru","Philippines",
+    "Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts & Nevis","Saint Lucia",
+    "Saint Vincent & the Grenadines","Samoa","San Marino","Sao Tome & Principe","Saudi Arabia","Senegal",
+    "Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands",
+    "Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname",
+    "Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo",
+    "Tonga","Trinidad & Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine",
+    "United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu",
+    "Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
+];
+
 $user_id = getCurrentUserId();
 $user    = getUserById($user_id);
 $errors  = [];
@@ -31,10 +59,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             // ---- update profile ----
             case 'update_profile':
-                $first_name  = trim($_POST['first_name'] ?? '');
-                $middle_name = trim($_POST['middle_name'] ?? '');
-                $last_name   = trim($_POST['last_name'] ?? '');
-                $email       = trim($_POST['email'] ?? '');
+                $first_name      = trim($_POST['first_name'] ?? '');
+                $middle_name     = trim($_POST['middle_name'] ?? '');
+                $last_name       = trim($_POST['last_name'] ?? '');
+                $email           = trim($_POST['email'] ?? '');
+                $address_line_1  = trim($_POST['address_line_1'] ?? '');
+                $address_line_2  = trim($_POST['address_line_2'] ?? '');
+                $city            = trim($_POST['city'] ?? '');
+                $state_province  = trim($_POST['state_province'] ?? '');
+                $postal_code     = trim($_POST['postal_code'] ?? '');
+                $country         = trim($_POST['country'] ?? '');
 
                 $validation = validateFormData(
                     ['email' => $email],
@@ -43,10 +77,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($validation['valid']) {
                     $data = [
-                        'first_name'  => $first_name,
-                        'middle_name' => $middle_name,
-                        'last_name'   => $last_name,
-                        'email'       => $email
+                        'first_name'     => $first_name,
+                        'middle_name'    => $middle_name,
+                        'last_name'      => $last_name,
+                        'email'          => $email,
+                        'address_line_1' => $address_line_1,
+                        'address_line_2' => $address_line_2,
+                        'city'           => $city,
+                        'state_province' => $state_province,
+                        'postal_code'    => $postal_code,
+                        'country'        => $country
                     ];
 
                     if (updateUserProfile($user_id, $data)) {
@@ -67,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $confirm_password = $_POST['confirm_password'] ?? '';
 
                 if ($isSuperuserOverride) {
-                    // superuser bypass
                     if (empty($new_password) || empty($confirm_password)) {
                         $errors['password'] = 'New password and confirmation are required.';
                     } elseif ($new_password !== $confirm_password) {
@@ -76,7 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $errors['password'] = 'Password must be at least 6 characters.';
                     }
                 } else {
-                    // regular validation
                     if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
                         $errors['password'] = 'All password fields are required.';
                     } elseif ($new_password !== $confirm_password) {
@@ -158,7 +196,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #fff !important;
             border-radius: .25rem;
         }
-        /* card styles */
         .profile-card, .password-card, .stats-card {
             background: #fff;
             border: none;
@@ -208,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .password-wrapper .toggle-password:hover {
             color: var(--primary);
         }
-        .form-control {
+        .form-control, .form-select {
             border-radius: .5rem;
         }
         .btn-primary, .btn-warning {
@@ -229,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: .5em 1em;
         }
         .dashboard-logo {
-            width: calc(100% - 2rem); /* Match nav-link width by accounting for sidebar padding */
+            width: calc(100% - 2rem);
             max-width: 100%;
             margin-left: auto;
             margin-right: auto;
@@ -356,6 +393,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                name="last_name"
                                                value="<?= htmlspecialchars($user['last_name'] ?? '') ?>"
                                                placeholder="Last Name">
+                                    </div>
+                                </div>
+
+                                <!-- Address Information -->
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Address Line 1</label>
+                                        <input type="text" class="form-control" name="address_line_1"
+                                               value="<?= htmlspecialchars($user['address_line_1'] ?? '') ?>" placeholder="Street, building">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Address Line 2</label>
+                                        <input type="text" class="form-control" name="address_line_2"
+                                               value="<?= htmlspecialchars($user['address_line_2'] ?? '') ?>" placeholder="Apartment, suite">
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">City / Municipality</label>
+                                        <input type="text" class="form-control" name="city"
+                                               value="<?= htmlspecialchars($user['city'] ?? '') ?>" placeholder="City / Municipality">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">State / Province</label>
+                                        <input type="text" class="form-control" name="state_province"
+                                               value="<?= htmlspecialchars($user['state_province'] ?? '') ?>" placeholder="State / Province">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Postal Code</label>
+                                        <input type="text" class="form-control" name="postal_code"
+                                               value="<?= htmlspecialchars($user['postal_code'] ?? '') ?>" placeholder="ZIP / Postal">
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-12">
+                                        <label class="form-label">Country</label>
+                                        <select class="form-select" name="country">
+                                            <option value="">-- Select Country --</option>
+                                            <?php
+                                            $selected = $user['country'] ?? '';
+                                            foreach ($countries as $c) {
+                                                echo '<option value="' . htmlspecialchars($c) . '"' .
+                                                     ($c === $selected ? ' selected' : '') . '>' . htmlspecialchars($c) . '</option>';
+                                            }
+                                            ?>
+                                        </select>
                                     </div>
                                 </div>
 

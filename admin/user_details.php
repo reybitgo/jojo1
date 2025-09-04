@@ -50,7 +50,7 @@ $refills     = getUserRefillRequests($userId);
                 background: var(--primary-dark);
                 color: #fff;
                 padding-top: 1rem;
-                z-index: 1040; /* lower than modals */
+                z-index: 1040;
             }
             .main-content { margin-left: 250px; }
         }
@@ -187,6 +187,25 @@ $refills     = getUserRefillRequests($userId);
             </div>
         </div>
 
+        <!-- Address Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-info text-white fw-bold">Address</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Address Line 1:</strong> <?= htmlspecialchars($user['address_line_1'] ?? 'N/A') ?></p>
+                        <p><strong>Address Line 2:</strong> <?= htmlspecialchars($user['address_line_2'] ?? 'N/A') ?></p>
+                        <p><strong>City / Municipality:</strong> <?= htmlspecialchars($user['city'] ?? 'N/A') ?></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>State / Province:</strong> <?= htmlspecialchars($user['state_province'] ?? 'N/A') ?></p>
+                        <p><strong>Postal Code:</strong> <?= htmlspecialchars($user['postal_code'] ?? 'N/A') ?></p>
+                        <p><strong>Country:</strong> <?= htmlspecialchars($user['country'] ?? 'N/A') ?></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Packages -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-secondary text-white fw-bold">Packages</div>
@@ -245,14 +264,14 @@ $refills     = getUserRefillRequests($userId);
                     </div>
                 </div>
             </div>
-        </div>  
+        </div>
 
     </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-/* reveal cards – identical to reference */
+/* identical card-reveal animation used elsewhere */
 document.addEventListener('DOMContentLoaded', () => {
     const cards = document.querySelectorAll('.card');
     const observer = new IntersectionObserver(entries =>
