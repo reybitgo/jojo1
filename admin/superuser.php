@@ -38,28 +38,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_key'])) {
     $error_msg = '';
     
     // Method 1: Try PHPMailer if available (recommended)
-    if (class_exists('PHPMailer\PHPMailer\PHPMailer') && defined('SMTP_HOST')) {
-        try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-            $mail->isSMTP();
-            $mail->Host = SMTP_HOST;
-            $mail->SMTPAuth = true;
-            $mail->Username = SMTP_USERNAME;
-            $mail->Password = SMTP_PASSWORD;
-            $mail->SMTPSecure = SMTP_ENCRYPTION ?? 'tls';
-            $mail->Port = SMTP_PORT ?? 587;
+    // if (class_exists('PHPMailer\PHPMailer\PHPMailer') && defined('SMTP_HOST')) {
+    //     try {
+    //         $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+    //         $mail->isSMTP();
+    //         $mail->Host = SMTP_HOST;
+    //         $mail->SMTPAuth = true;
+    //         $mail->Username = SMTP_USERNAME;
+    //         $mail->Password = SMTP_PASSWORD;
+    //         $mail->SMTPSecure = SMTP_ENCRYPTION ?? 'tls';
+    //         $mail->Port = SMTP_PORT ?? 587;
             
-            $mail->setFrom(SITE_EMAIL, SITE_NAME);
-            $mail->addAddress($admin_email);
-            $mail->Subject = 'Superuser Key - ' . SITE_NAME;
-            $mail->Body = "Your superuser key is: $key\nValid for 5 minutes.\n\nRequested from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    //         $mail->setFrom(SITE_EMAIL, SITE_NAME);
+    //         $mail->addAddress($admin_email);
+    //         $mail->Subject = 'Superuser Key - ' . SITE_NAME;
+    //         $mail->Body = "Your superuser key is: $key\nValid for 5 minutes.\n\nRequested from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
             
-            $mail->send();
-            $email_sent = true;
-        } catch (Exception $e) {
-            $error_msg = "PHPMailer error: " . $e->getMessage();
-        }
-    }
+    //         $mail->send();
+    //         $email_sent = true;
+    //     } catch (Exception $e) {
+    //         $error_msg = "PHPMailer error: " . $e->getMessage();
+    //     }
+    // }
     
     // Method 2: Try built-in mail() function as fallback
     if (!$email_sent) {
