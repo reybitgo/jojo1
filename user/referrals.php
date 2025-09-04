@@ -291,10 +291,10 @@ try {
                 <div class="card-body">
                     <div class="bg-light p-2 rounded d-flex align-items-center">
                         <code id="refCode" class="referral-link flex-grow-1">
-                            https://btc3.site/register.php?ref=<?= urlencode($user['username']) ?>
+                            <?= SITE_URL ?>/register.php?ref=<?= urlencode($user['username']) ?>
                         </code>
                         <button class="btn btn-sm btn-outline-primary btn-copy ms-2"
-                                onclick="copyToClipboard('https://btc3.site/register.php?ref=<?= urlencode($user['username']) ?>')">
+                                onclick="copyToClipboard('<?= SITE_URL ?>/register.php?ref=<?= urlencode($user['username']) ?>')">
                             <i class="fas fa-copy"></i> Copy
                         </button>
                     </div>
